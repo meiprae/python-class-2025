@@ -1,0 +1,21 @@
+name = input("Enter your name: ")
+surname = input("Enter your surname: ")
+print("Full name:", name, surname)
+
+a = int(input("Enter integer a: "))
+b = int(input("Enter integer b: "))
+
+print("a + b =", a + b)
+print("a - b =", a - b)
+print("a * b =", a * b)
+print("a / b =", a / b)
+print("a ** b =", a ** b)
+print("a // b =", a // b)
+print("a % b =", a % b)
+print("a < b:", a < b)
+print("a <= b:", a <= b)
+print("a != b:", a != b)
+print("a == b:", a == b)
+
+print("a > b:", a > b)
+print("a >= b:", a >= b)
