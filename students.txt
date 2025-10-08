@@ -1,0 +1,6 @@
+1001,Mint,ja
+1002,ki,ki
+1003,may,ya
+1004,uki,wee
+1005,pra,wa
+

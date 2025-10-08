@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Girl Ultimate Adventure</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #FFE4E1, #FFF0F5, #E6E6FA);
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            text-align: center;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #FF69B4;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #FF69B4, #FFB6C1, #DDA0DD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #gameCanvas {
+            border: 4px solid #FF69B4;
+            border-radius: 15px;
+            background: #F0F8FF;
+            display: block;
+            margin: 0 auto;
+            box-shadow: inset 0 0 20px rgba(255, 105, 180, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .game-ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 16px;
+            font-weight: bold;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .score, .lives, .level, .combo {
+            color: #FF1493;
+            background: rgba(255, 182, 193, 0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid #FFB6C1;
+        }
+
+        .combo {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: white;
+            display: none;
+            animation: pulse 0.5s infinite;
+        }
+
+        .controls {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 25px;
+            color: white;
+            z-index: 10;
+        }
+
+        .screen-overlay h2 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #FF69B4, #FFB6C1, #DDA0DD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #FF69B4, #FFB6C1);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 105, 180, 0.6);
+        }
+
+        .power-up-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            padding: 10px;
+            border-radius: 15px;
+            color: white;
+            font-weight: bold;
+            display: none;
+            animation: pulse 1s infinite;
+        }
+
+        .event-notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #9370DB, #8A2BE2);
+            padding: 20px;
+            border-radius: 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            z-index: 15;
+            animation: eventPop 3s ease-out;
+        }
+
+        .achievements-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            max-width: 200px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .achievement {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 10px;
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        .achievement.unlocked {
+            background: rgba(50, 205, 50, 0.3);
+            color: #006400;
+        }
+
+        .frenzy-mode {
+            animation: frenzyPulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes eventPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        }
+
+        @keyframes frenzyPulse {
+            0% { filter: hue-rotate(0deg) saturate(1.5) brightness(1.2); }
+            100% { filter: hue-rotate(60deg) saturate(2) brightness(1.5); }
+        }
+
+        .flash {
+            animation: flash 0.5s infinite;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 700px) {
+            .game-container {
+                padding: 10px;
+                margin: 10px;
+            }
+            
+            #gameCanvas {
+                width: 100%;
+                max-width: 400px;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🌸 Pac-Girl Ultimate Adventure 🌸</h1>
+        <div class="game-ui">
+            <div class="score">Score: <span id="scoreValue">0</span></div>
+            <div class="lives">Lives: <span id="livesValue">3</span></div>
+            <div class="level">Level: <span id="levelValue">1</span></div>
+            <div class="combo" id="comboDisplay">Combo x<span id="comboValue">1</span></div>
+        </div>
+        <canvas id="gameCanvas" width="640" height="352"></canvas>
+        <div class="controls">
+            Use arrow keys to move Pac-Girl! 🎮<br>
+            Collect power-ups for special abilities! ⭐
+        </div>
+        
+        <div class="power-up-indicator" id="powerUpIndicator">
+            <span id="powerUpText">POWER MODE!</span> <span id="powerTimer">10</span>s
+        </div>
+
+        <div class="event-notification" id="eventNotification">
+            <span id="eventText">Event!</span>
+        </div>
+
+        <div class="achievements-panel" id="achievementsPanel">
+            <h4>🏆 Achievements</h4>
+            <div id="achievementsList"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div class="screen-overlay" id="startScreen">
+            <h2>🌸 Pac-Girl Ultimate Adventure 🌸</h2>
+            <p style="font-size: 1.2em; margin-bottom: 30px;">Experience the ultimate Pac-Girl adventure with power-ups, boss ghosts, and special events!</p>
+            <button class="btn" onclick="startGame()">Start Game</button>
+            <button class="btn" onclick="toggleAchievements()">View Achievements</button>
+            <p style="margin-top: 20px;">Use arrow keys to move<br>Collect various power-ups for special abilities!</p>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div class="screen-overlay" id="gameOverScreen" style="display: none;">
+            <h2>Game Over</h2>
+            <p id="finalScore" style="font-size: 1.5em; margin-bottom: 20px;"></p>
+            <div id="finalAchievements" style="margin-bottom: 20px;"></div>
+            <button class="btn" onclick="restartGame()">Play Again</button>
+            <button class="btn" onclick="showStartScreen()">Main Menu</button>
+        </div>
+
+        <!-- Level Complete Screen -->
+        <div class="screen-overlay" id="levelCompleteScreen" style="display: none;">
+            <h2>Level Complete! 🎉</h2>
+            <p style="font-size: 1.2em; margin-bottom: 30px;">Great job! Ready for the next level?</p>
+            <button class="btn" onclick="nextLevel()">Next Level</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('scoreValue');
+        const livesElement = document.getElementById('livesValue');
+        const levelElement = document.getElementById('levelValue');
+        const powerUpIndicator = document.getElementById('powerUpIndicator');
+        const powerTimer = document.getElementById('powerTimer');
+        const powerUpText = document.getElementById('powerUpText');
+        const comboDisplay = document.getElementById('comboDisplay');
+        const comboValue = document.getElementById('comboValue');
+        const eventNotification = document.getElementById('eventNotification');
+        const eventText = document.getElementById('eventText');
+
+        // Game constants
+        const TILE_SIZE = 32;
+        let gameState = 'start';
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let totalDots = 0;
+        let collectedDots = 0;
+
+        // Power-up system
+        let activePowerUps = new Set();
+        let powerUpTimers = {};
+        
+        // Combo system
+        let combo = 0;
+        let comboTimer = 0;
+        let lastDotTime = 0;
+
+        // Events system
+        let activeEvent = null;
+        let eventTimer = 0;
+
+        // Frenzy mode
+        let frenzyMode = false;
+        let frenzyTimer = 0;
+
+        // Boss ghost
+        let bossGhost = null;
+
+        // Achievements system
+        let achievements = {
+            'speedRunner': { name: '🏃‍♀️ Speed Runner', desc: 'Complete level in 30s', unlocked: false },
+            'survivor': { name: '💪 Survivor', desc: 'Reach level 5 without dying', unlocked: false },
+            'dodger': { name: '🤸‍♀️ Master Dodger', desc: 'Avoid ghosts 10 times in a row', unlocked: false },
+            'comboMaster': { name: '🔥 Combo Master', desc: 'Get 20x combo', unlocked: false },
+            'powerCollector': { name: '⭐ Power Collector', desc: 'Use all power-up types', unlocked: false },
+            'bossSlayer': { name: '👻 Boss Slayer', desc: 'Defeat Luna the boss ghost', unlocked: false }
+        };
+        let usedPowerUpTypes = new Set();
+        let dodgeStreak = 0;
+        let levelStartTime = 0;
+        let deathCount = 0;
+
+        // Sound effects simulation
+        function playSound(soundType) {
+            switch(soundType) {
+                case 'eatDot':
+                    canvas.style.filter = 'brightness(1.2)';
+                    setTimeout(() => canvas.style.filter = 'brightness(1)', 100);
+                    break;
+                case 'powerUp':
+                    canvas.style.filter = 'hue-rotate(90deg)';
+                    setTimeout(() => canvas.style.filter = 'hue-rotate(0deg)', 200);
+                    break;
+                case 'ghostEat':
+                    canvas.style.filter = 'saturate(2)';
+                    setTimeout(() => canvas.style.filter = 'saturate(1)', 300);
+                    break;
+                case 'playerDie':
+                    canvas.classList.add('flash');
+                    setTimeout(() => canvas.classList.remove('flash'), 1000);
+                    break;
+                case 'combo':
+                    canvas.style.filter = 'brightness(1.5) saturate(1.5)';
+                    setTimeout(() => canvas.style.filter = 'brightness(1) saturate(1)', 200);
+                    break;
+                case 'frenzy':
+                    canvas.classList.add('frenzy-mode');
+                    break;
+                case 'event':
+                    canvas.style.filter = 'contrast(1.5) brightness(0.8)';
+                    setTimeout(() => canvas.style.filter = 'contrast(1) brightness(1)', 500);
+                    break;
+            }
+        }
+
+        // Power-up types
+        const POWER_UP_TYPES = {
+            CANDY: { emoji: '🍭', name: 'Speed Candy', duration: 5 },
+            STAR: { emoji: '💫', name: 'Magic Star', duration: 5 },
+            ICE: { emoji: '🧊', name: 'Freeze Ice', duration: 3 },
+            HEART: { emoji: '🧡', name: 'Extra Life', duration: 0 },
+            DICE: { emoji: '🎲', name: 'Random Event', duration: 0 }
+        };
+
+        // Level maps with different power-up types (4=candy, 5=star, 6=ice, 7=heart, 8=dice, 9=key, 10=door, 11=trap)
+        const levelMaps = {
+            1: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,5,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,2,4,1],
+                [1,2,1,2,1,2,1,1,2,1,2,1,1,2,1,2,1,2,2,1],
+                [1,2,1,2,2,2,2,2,2,2,2,2,2,2,1,2,1,2,2,1],
+                [1,2,1,2,1,1,1,1,1,1,1,1,1,2,1,2,1,2,2,1],
+                [1,2,2,2,1,2,2,2,1,2,1,2,2,2,1,2,2,2,2,1],
+                [1,1,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,1,1,1],
+                [1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,2,1],
+                [1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,2,1],
+                [1,6,2,2,1,2,2,2,2,2,2,2,2,2,1,2,2,2,7,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ],
+            2: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,1],
+                [1,2,1,1,1,2,1,1,2,1,2,1,1,2,1,1,1,2,4,1],
+                [1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1],
+                [1,2,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,2,2,1],
+                [1,2,2,2,2,2,2,2,1,2,1,2,2,2,2,2,2,2,2,1],
+                [1,1,1,1,2,1,1,2,1,2,1,2,1,1,2,1,1,1,1,1],
+                [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+                [1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,2,2,1],
+                [1,5,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,8,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ],
+            3: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,2,2,2,1,2,2,2,2,1,2,2,2,2,1,2,2,2,2,1],
+                [1,2,1,2,1,2,1,1,2,1,2,1,1,2,1,2,1,2,6,1],
+                [1,2,1,2,2,2,2,2,2,0,0,2,2,2,2,2,1,2,2,1],
+                [1,2,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,2,2,1],
+                [1,2,2,2,2,2,2,2,1,0,0,1,2,2,2,2,2,2,2,1],
+                [1,1,1,2,1,2,1,2,1,0,0,1,2,1,2,1,2,1,1,1],
+                [1,2,2,2,2,2,1,2,2,2,2,2,1,2,2,2,2,2,2,1],
+                [1,2,1,1,1,2,1,1,1,1,1,1,1,2,1,1,1,2,2,1],
+                [1,4,2,2,1,2,2,2,2,2,2,2,2,2,1,2,2,2,5,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ]
+        };
+
+        let gameMap = [];
+        let playerKeys = 0;
+
+        // Count total dots
+        function countDots() {
+            totalDots = 0;
+            for (let y = 0; y < gameMap.length; y++) {
+                for (let x = 0; x < gameMap[y].length; x++) {
+                    if (gameMap[y][x] === 2) {
+                        totalDots++;
+                    }
+                }
+            }
+        }
+
+        // Load level map
+        function loadLevel(levelNum) {
+            if (levelMaps[levelNum]) {
+                gameMap = JSON.parse(JSON.stringify(levelMaps[levelNum]));
+            } else {
+                // Generate harder version for higher levels
+                gameMap = JSON.parse(JSON.stringify(levelMaps[3]));
+                // Add more power-ups and traps
+                for (let i = 0; i < levelNum - 3; i++) {
+                    let x = Math.floor(Math.random() * 18) + 1;
+                    let y = Math.floor(Math.random() * 9) + 1;
+                    if (gameMap[y][x] === 2) {
+                        gameMap[y][x] = Math.random() < 0.5 ? 11 : (4 + Math.floor(Math.random() * 5)); // Trap or random power-up
+                    }
+                }
+            }
+            playerKeys = 0;
+            collectedDots = 0;
+            countDots();
+            levelStartTime = Date.now();
+        }
+
+        // Get ghost count for level
+        function getGhostCount(levelNum) {
+            if (levelNum === 1) return 2;
+            if (levelNum === 2) return 3;
+            return Math.min(4, 3 + Math.floor((levelNum - 2) / 2));
+        }
+
+        // Get ghost speed for level
+        function getGhostSpeed(levelNum) {
+            return 2 + (levelNum - 1) * 0.5;
+        }
+
+        // Player class
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseSpeed = 4;
+                this.speed = 4;
+                this.direction = 0;
+                this.animationFrame = 0;
+            }
+
+            updateSpeed() {
+                this.speed = this.baseSpeed;
+                if (activePowerUps.has('CANDY')) {
+                    this.speed *= 1.5; // Speed boost
+                }
+                if (frenzyMode) {
+                    this.speed *= 1.3; // Additional frenzy speed
+                }
+            }
+
+            draw() {
+                this.animationFrame += 0.2;
+                
+                // Frenzy mode effect
+                if (frenzyMode) {
+                    ctx.save();
+                    ctx.shadowColor = '#FFD700';
+                    ctx.shadowBlur = 20;
+                }
+                
+                // Create cute pastel gradient
+                const gradient = ctx.createRadialGradient(
+                    this.x + TILE_SIZE/2, this.y + TILE_SIZE/2, 0,
+                    this.x + TILE_SIZE/2, this.y + TILE_SIZE/2, TILE_SIZE/2
+                );
+                gradient.addColorStop(0, '#FFE4E1');
+                gradient.addColorStop(0.7, '#FFB6C1');
+                gradient.addColorStop(1, '#FF69B4');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                
+                // Animated mouth
+                const mouthAngle = Math.sin(this.animationFrame) * 0.5 + 0.5;
+                const startAngle = (this.direction * Math.PI / 2) + (mouthAngle * 0.8);
+                const endAngle = startAngle + (Math.PI * 2 - mouthAngle * 1.6);
+                
+                ctx.arc(this.x + TILE_SIZE/2, this.y + TILE_SIZE/2, TILE_SIZE/2 - 2, startAngle, endAngle);
+                ctx.lineTo(this.x + TILE_SIZE/2, this.y + TILE_SIZE/2);
+                ctx.fill();
+
+                // Power-up effects
+                if (activePowerUps.has('CANDY')) {
+                    // Speed trail effect
+                    ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(this.x + TILE_SIZE/2 - this.direction * 5, this.y + TILE_SIZE/2, TILE_SIZE/3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Cute bow with sparkles
+                ctx.fillStyle = '#DDA0DD';
+                ctx.beginPath();
+                ctx.arc(this.x + TILE_SIZE/2 - 8, this.y + 6, 6, 0, Math.PI * 2);
+                ctx.arc(this.x + TILE_SIZE/2 + 8, this.y + 6, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Bow center
+                ctx.fillStyle = '#9370DB';
+                ctx.fillRect(this.x + TILE_SIZE/2 - 4, this.y + 3, 8, 8);
+
+                // Sparkles
+                ctx.fillStyle = '#FFFFFF';
+                const sparkleOffset = Math.sin(this.animationFrame * 2) * 2;
+                ctx.beginPath();
+                ctx.arc(this.x + TILE_SIZE/2 - 6 + sparkleOffset, this.y + 4, 1.5, 0, Math.PI * 2);
+                ctx.arc(this.x + TILE_SIZE/2 + 6 - sparkleOffset, this.y + 4, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(this.x + TILE_SIZE/2 - 6, this.y + TILE_SIZE/2 - 4, 2, 0, Math.PI * 2);
+                ctx.arc(this.x + TILE_SIZE/2 + 6, this.y + TILE_SIZE/2 - 4, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye shine
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(this.x + TILE_SIZE/2 - 5, this.y + TILE_SIZE/2 - 5, 1, 0, Math.PI * 2);
+                ctx.arc(this.x + TILE_SIZE/2 + 7, this.y + TILE_SIZE/2 - 5, 1, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (frenzyMode) {
+                    ctx.restore();
+                }
+            }
+
+            move(dx, dy) {
+                this.updateSpeed();
+                
+                // Check for trap slow effect
+                const currentGridX = Math.floor(this.x / TILE_SIZE);
+                const currentGridY = Math.floor(this.y / TILE_SIZE);
+                let moveSpeed = this.speed;
+                
+                if (gameMap[currentGridY] && gameMap[currentGridY][currentGridX] === 11) {
+                    moveSpeed = this.speed * 0.3; // Slow down on traps
+                    dx = dx * 0.3;
+                    dy = dy * 0.3;
+                }
+
+                const newX = this.x + dx;
+                const newY = this.y + dy;
+                const gridX = Math.floor(newX / TILE_SIZE);
+                const gridY = Math.floor(newY / TILE_SIZE);
+
+                if (gridY >= 0 && gridY < gameMap.length && 
+                    gridX >= 0 && gridX < gameMap[0].length && 
+                    gameMap[gridY][gridX] !== 1 && gameMap[gridY][gridX] !== 10) {
+                    this.x = newX;
+                    this.y = newY;
+
+                    // Collect items
+                    const tileType = gameMap[gridY][gridX];
+                    if (tileType === 2) {
+                        gameMap[gridY][gridX] = 0;
+                        const baseScore = 10;
+                        const comboMultiplier = Math.min(combo + 1, 5);
+                        const frenzyMultiplier = frenzyMode ? 2 : 1;
+                        score += baseScore * comboMultiplier * frenzyMultiplier;
+                        collectedDots++;
+                        scoreElement.textContent = score;
+                        playSound('eatDot');
+                        
+                        // Update combo
+                        const currentTime = Date.now();
+                        if (currentTime - lastDotTime < 1000) { // Within 1 second
+                            combo++;
+                            comboTimer = 180; // 3 seconds to show combo
+                            if (combo >= 5) {
+                                comboDisplay.style.display = 'block';
+                                comboValue.textContent = combo;
+                                playSound('combo');
+                            }
+                            if (combo >= 20) {
+                                unlockAchievement('comboMaster');
+                            }
+                        } else {
+                            combo = 1;
+                        }
+                        lastDotTime = currentTime;
+                        
+                        if (collectedDots >= totalDots) {
+                            levelComplete();
+                        }
+                    } else if (tileType >= 4 && tileType <= 8) {
+                        // Power-ups
+                        gameMap[gridY][gridX] = 0;
+                        score += 50;
+                        scoreElement.textContent = score;
+                        activatePowerUp(tileType);
+                        playSound('powerUp');
+                    } else if (tileType === 9) {
+                        // Collect key
+                        gameMap[gridY][gridX] = 0;
+                        playerKeys++;
+                        score += 100;
+                        scoreElement.textContent = score;
+                        playSound('powerUp');
+                        
+                        // Open all locked doors
+                        for (let y = 0; y < gameMap.length; y++) {
+                            for (let x = 0; x < gameMap[y].length; x++) {
+                                if (gameMap[y][x] === 10) {
+                                    gameMap[y][x] = 0;
+                                }
+                            }
+                        }
+                    }
+
+                    // Update direction
+                    if (dx > 0) this.direction = 0;
+                    else if (dy > 0) this.direction = 1;
+                    else if (dx < 0) this.direction = 2;
+                    else if (dy < 0) this.direction = 3;
+                }
+            }
+        }
+
+        // Boss Ghost class
+        class BossGhost {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.originalX = x;
+                this.originalY = y;
+                this.speed = getGhostSpeed(level) * 0.8; // Slightly slower but smarter
+                this.direction = 0;
+                this.moveTimer = 0;
+                this.animationFrame = 0;
+                this.health = 3;
+                this.warpCooldown = 0;
+                this.isEaten = false;
+                this.respawnTimer = 0;
+            }
+
+            draw() {
+                if (this.isEaten) return;
+                
+                this.animationFrame += 0.1;
+                
+                // Boss size is larger
+                const size = TILE_SIZE * 1.5;
+                
+                // Determine ghost color based on power-up state
+                let ghostColor = '#8A2BE2'; // Purple for boss
+                if (activePowerUps.has('STAR')) {
+                    ghostColor = powerUpTimers['STAR'] > 3 ? '#4169E1' : (Math.floor(Date.now() / 200) % 2 ? '#4169E1' : '#FFFFFF');
+                }
+
+                // Boss aura effect
+                ctx.save();
+                ctx.shadowColor = ghostColor;
+                ctx.shadowBlur = 30;
+                
+                // Cute boss ghost body with gradient
+                const gradient = ctx.createRadialGradient(
+                    this.x + size/2, this.y + size/3, 0,
+                    this.x + size/2, this.y + size/3, size/2
+                );
+                gradient.addColorStop(0, ghostColor);
+                gradient.addColorStop(1, ghostColor + '80');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x + size/2, this.y + size/2, size/2 - 2, Math.PI, 0);
+                ctx.rect(this.x + 2, this.y + size/2, size - 4, size/2 - 2);
+                ctx.fill();
+
+                // Wavy bottom (larger)
+                ctx.beginPath();
+                for (let i = 0; i < 7; i++) {
+                    const waveX = this.x + 2 + (i * (size - 4) / 6);
+                    const waveY = this.y + size - 2 + Math.sin(this.animationFrame + i) * 3;
+                    if (i === 0) ctx.moveTo(waveX, this.y + size - 2);
+                    else ctx.lineTo(waveX, waveY);
+                }
+                ctx.lineTo(this.x + size - 2, this.y + size - 2);
+                ctx.lineTo(this.x + size - 2, this.y + size/2);
+                ctx.lineTo(this.x + 2, this.y + size/2);
+                ctx.fill();
+
+                // Witch hat
+                ctx.fillStyle = '#2F4F4F';
+                ctx.beginPath();
+                ctx.moveTo(this.x + size/2, this.y - 10);
+                ctx.lineTo(this.x + size/2 - 15, this.y + 10);
+                ctx.lineTo(this.x + size/2 + 15, this.y + 10);
+                ctx.closePath();
+                ctx.fill();
+
+                // Hat brim
+                ctx.fillStyle = '#2F4F4F';
+                ctx.beginPath();
+                ctx.ellipse(this.x + size/2, this.y + 10, 20, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cute eyes (larger)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                const eyeSize = 8 + Math.sin(this.animationFrame * 2) * 1;
+                ctx.arc(this.x + size/2 - 12, this.y + size/2 - 8, eyeSize, 0, Math.PI * 2);
+                ctx.arc(this.x + size/2 + 12, this.y + size/2 - 8, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pupils
+                ctx.fillStyle = activePowerUps.has('STAR') ? '#FFFFFF' : '#FF0000';
+                const pupilX = activePowerUps.has('STAR') ? 0 : Math.sin(this.animationFrame) * 2;
+                const pupilY = activePowerUps.has('STAR') ? 3 : 0;
+                ctx.beginPath();
+                ctx.arc(this.x + size/2 - 12 + pupilX, this.y + size/2 - 8 + pupilY, 3, 0, Math.PI * 2);
+                ctx.arc(this.x + size/2 + 12 + pupilX, this.y + size/2 - 8 + pupilY, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Health indicator
+                ctx.fillStyle = '#FF0000';
+                for (let i = 0; i < this.health; i++) {
+                    ctx.beginPath();
+                    ctx.arc(this.x + 10 + i * 15, this.y - 5, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+
+            move() {
+                if (this.isEaten) {
+                    this.respawnTimer--;
+                    if (this.respawnTimer <= 0) {
+                        this.isEaten = false;
+                        this.x = this.originalX;
+                        this.y = this.originalY;
+                        this.health = 3;
+                    }
+                    return;
+                }
+
+                // Update warp cooldown
+                if (this.warpCooldown > 0) {
+                    this.warpCooldown--;
+                }
+
+                // Boss warp ability (more frequent)
+                if (this.warpCooldown === 0 && !activePowerUps.has('STAR')) {
+                    const distanceToPlayer = Math.sqrt(
+                        Math.pow(player.x - this.x, 2) + Math.pow(player.y - this.y, 2)
+                    );
+                    
+                    if (distanceToPlayer > TILE_SIZE * 3 && Math.random() < 0.02) {
+                        // Warp closer to player
+                        const targetX = player.x + (Math.random() - 0.5) * TILE_SIZE * 3;
+                        const targetY = player.y + (Math.random() - 0.5) * TILE_SIZE * 3;
+                        const gridX = Math.floor(targetX / TILE_SIZE);
+                        const gridY = Math.floor(targetY / TILE_SIZE);
+                        
+                        if (gridY >= 0 && gridY < gameMap.length && 
+                            gridX >= 0 && gridX < gameMap[0].length && 
+                            gameMap[gridY][gridX] === 0) {
+                            this.x = gridX * TILE_SIZE;
+                            this.y = gridY * TILE_SIZE;
+                            this.warpCooldown = 180; // 3 second cooldown
+                            playSound('powerUp');
+                        }
+                    }
+                }
+
+                // Smart AI movement
+                this.moveTimer++;
+                if (this.moveTimer > (activePowerUps.has('STAR') ? 25 : 8)) {
+                    this.moveTimer = 0;
+                    
+                    const directions = [
+                        {dx: this.speed, dy: 0},
+                        {dx: 0, dy: this.speed},
+                        {dx: -this.speed, dy: 0},
+                        {dx: 0, dy: -this.speed}
+                    ];
+
+                    // Advanced AI - predict player movement
+                    let targetDirection = this.direction;
+                    if (!activePowerUps.has('STAR')) {
+                        const dx = player.x - this.x;
+                        const dy = player.y - this.y;
+                        
+                        // Predict where player will be
+                        const predictedX = player.x + (player.direction === 0 ? player.speed * 3 : player.direction === 2 ? -player.speed * 3 : 0);
+                        const predictedY = player.y + (player.direction === 1 ? player.speed * 3 : player.direction === 3 ? -player.speed * 3 : 0);
+                        
+                        const predDx = predictedX - this.x;
+                        const predDy = predictedY - this.y;
+                        
+                        if (Math.abs(predDx) > Math.abs(predDy)) {
+                            targetDirection = predDx > 0 ? 0 : 2;
+                        } else {
+                            targetDirection = predDy > 0 ? 1 : 3;
+                        }
+                    } else {
+                        // Run away when vulnerable
+                        const dx = player.x - this.x;
+                        const dy = player.y - this.y;
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            targetDirection = dx > 0 ? 2 : 0;
+                        } else {
+                            targetDirection = dy > 0 ? 3 : 1;
+                        }
+                    }
+
+                    // Try to move
+                    const dir = directions[targetDirection];
+                    const newX = this.x + dir.dx;
+                    const newY = this.y + dir.dy;
+                    const gridX = Math.floor(newX / TILE_SIZE);
+                    const gridY = Math.floor(newY / TILE_SIZE);
+
+                    if (gridY >= 0 && gridY < gameMap.length && 
+                        gridX >= 0 && gridX < gameMap[0].length && 
+                        gameMap[gridY][gridX] !== 1 && gameMap[gridY][gridX] !== 10) {
+                        this.x = newX;
+                        this.y = newY;
+                        this.direction = targetDirection;
+                    }
+                }
+            }
+        }
+
+        // Regular Ghost class (simplified from previous version)
+        class Ghost {
+            constructor(x, y, color, personality) {
+                this.x = x;
+                this.y = y;
+                this.originalX = x;
+                this.originalY = y;
+                this.color = color;
+                this.personality = personality;
+                this.direction = Math.floor(Math.random() * 4);
+                this.moveTimer = 0;
+                this.speed = getGhostSpeed(level);
+                this.animationFrame = 0;
+                this.isEaten = false;
+                this.respawnTimer = 0;
+                this.canWarp = level >= 3 && personality === 'chaser';
+                this.warpCooldown = 0;
+                this.isInvisible = false;
+                this.invisibilityTimer = 0;
+                this.isFrozen = false;
+            }
+
+            draw() {
+                if (this.isEaten) return;
+                
+                this.animationFrame += 0.1;
+                
+                // Handle invisibility for level 5+ ghosts
+                if (level >= 5 && this.personality === 'patrol') {
+                    this.invisibilityTimer++;
+                    if (this.invisibilityTimer > 180) {
+                        this.isInvisible = true;
+                        if (this.invisibilityTimer > 300) {
+                            this.invisibilityTimer = 0;
+                            this.isInvisible = false;
+                        }
+                    }
+                }
+                
+                // Don't draw if invisible
+                if (this.isInvisible && !activePowerUps.has('STAR')) {
+                    ctx.globalAlpha = 0.2;
+                } else {
+                    ctx.globalAlpha = 1;
+                }
+                
+                // Determine ghost color based on power-up state
+                let ghostColor = this.color;
+                if (activePowerUps.has('STAR')) {
+                    ghostColor = powerUpTimers['STAR'] > 3 ? '#4169E1' : (Math.floor(Date.now() / 200) % 2 ? '#4169E1' : '#FFFFFF');
+                }
+
+                // Freeze effect
+                if (this.isFrozen) {
+                    ctx.save();
+                    ctx.shadowColor = '#87CEEB';
+                    ctx.shadowBlur = 15;
+                }
+
+                // Cute ghost body with gradient
+                const gradient = ctx.createRadialGradient(
+                    this.x + TILE_SIZE/2, this.y + TILE_SIZE/3, 0,
+                    this.x + TILE_SIZE/2, this.y + TILE_SIZE/3, TILE_SIZE/2
+                );
+                gradient.addColorStop(0, ghostColor);
+                gradient.addColorStop(1, ghostColor + '80');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x + TILE_SIZE/2, this.y + TILE_SIZE/2, TILE_SIZE/2 - 2, Math.PI, 0);
+                ctx.rect(this.x + 2, this.y + TILE_SIZE/2, TILE_SIZE - 4, TILE_SIZE/2 - 2);
+                ctx.fill();
+
+                // Wavy bottom (frozen ghosts don't wave)
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const waveX = this.x + 2 + (i * (TILE_SIZE - 4) / 4);
+                    const waveY = this.y + TILE_SIZE - 2 + (this.isFrozen ? 0 : Math.sin(this.animationFrame + i) * 2);
+                    if (i === 0) ctx.moveTo(waveX, this.y + TILE_SIZE - 2);
+                    else ctx.lineTo(waveX, waveY);
+                }
+                ctx.lineTo(this.x + TILE_SIZE - 2, this.y + TILE_SIZE - 2);
+                ctx.lineTo(this.x + TILE_SIZE - 2, this.y + TILE_SIZE/2);
+                ctx.lineTo(this.x + 2, this.y + TILE_SIZE/2);
+                ctx.fill();
+
+                // Cute eyes
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                const eyeSize = 5 + (this.isFrozen ? 0 : Math.sin(this.animationFrame * 2) * 0.5);
+                ctx.arc(this.x + 9, this.y + 10, eyeSize, 0, Math.PI * 2);
+                ctx.arc(this.x + 23, this.y + 10, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pupils
+                ctx.fillStyle = activePowerUps.has('STAR') ? '#FFFFFF' : '#000000';
+                const pupilX = (activePowerUps.has('STAR') || this.isFrozen) ? 0 : Math.sin(this.animationFrame) * 1;
+                const pupilY = activePowerUps.has('STAR') ? 2 : 0;
+                ctx.beginPath();
+                ctx.arc(this.x + 10 + pupilX, this.y + 11 + pupilY, 2, 0, Math.PI * 2);
+                ctx.arc(this.x + 22 + pupilX, this.y + 11 + pupilY, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Freeze crystals
+                if (this.isFrozen) {
+                    ctx.fillStyle = '#87CEEB';
+                    ctx.globalAlpha = 0.8;
+                    for (let i = 0; i < 3; i++) {
+                        const crystalX = this.x + 8 + i * 8;
+                        const crystalY = this.y + 20 + Math.sin(i) * 3;
+                        ctx.beginPath();
+                        ctx.moveTo(crystalX, crystalY - 3);
+                        ctx.lineTo(crystalX - 2, crystalY + 2);
+                        ctx.lineTo(crystalX + 2, crystalY + 2);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+                
+                ctx.globalAlpha = 1;
+            }
+
+            move() {
+                if (this.isEaten) {
+                    this.respawnTimer--;
+                    if (this.respawnTimer <= 0) {
+                        this.isEaten = false;
+                        this.x = this.originalX;
+                        this.y = this.originalY;
+                    }
+                    return;
+                }
+
+                // Check if frozen
+                this.isFrozen = activePowerUps.has('ICE');
+                if (this.isFrozen) return;
+
+                // Update warp cooldown
+                if (this.warpCooldown > 0) {
+                    this.warpCooldown--;
+                }
+
+                // Warp ability for level 3+ chaser ghosts
+                if (this.canWarp && this.warpCooldown === 0 && !activePowerUps.has('STAR')) {
+                    const distanceToPlayer = Math.sqrt(
+                        Math.pow(player.x - this.x, 2) + Math.pow(player.y - this.y, 2)
+                    );
+                    
+                    if (distanceToPlayer > TILE_SIZE * 5 && Math.random() < 0.01) {
+                        const targetX = player.x + (Math.random() - 0.5) * TILE_SIZE * 4;
+                        const targetY = player.y + (Math.random() - 0.5) * TILE_SIZE * 4;
+                        const gridX = Math.floor(targetX / TILE_SIZE);
+                        const gridY = Math.floor(targetY / TILE_SIZE);
+                        
+                        if (gridY >= 0 && gridY < gameMap.length && 
+                            gridX >= 0 && gridX < gameMap[0].length && 
+                            gameMap[gridY][gridX] === 0) {
+                            this.x = gridX * TILE_SIZE;
+                            this.y = gridY * TILE_SIZE;
+                            this.warpCooldown = 300;
+                            playSound('powerUp');
+                        }
+                    }
+                }
+
+                this.moveTimer++;
+                if (this.moveTimer > (activePowerUps.has('STAR') ? 20 : 10)) {
+                    this.moveTimer = 0;
+                    
+                    const directions = [
+                        {dx: this.speed, dy: 0},
+                        {dx: 0, dy: this.speed},
+                        {dx: -this.speed, dy: 0},
+                        {dx: 0, dy: -this.speed}
+                    ];
+
+                    // AI behavior based on personality
+                    let targetDirection = this.direction;
+                    if (this.personality === 'chaser' && !activePowerUps.has('STAR')) {
+                        const dx = player.x - this.x;
+                        const dy = player.y - this.y;
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            targetDirection = dx > 0 ? 0 : 2;
+                        } else {
+                            targetDirection = dy > 0 ? 1 : 3;
+                        }
+                    } else if (activePowerUps.has('STAR')) {
+                        const dx = player.x - this.x;
+                        const dy = player.y - this.y;
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            targetDirection = dx > 0 ? 2 : 0;
+                        } else {
+                            targetDirection = dy > 0 ? 3 : 1;
+                        }
+                    }
+
+                    // Try target direction first
+                    let moved = false;
+                    const dir = directions[targetDirection];
+                    const newX = this.x + dir.dx;
+                    const newY = this.y + dir.dy;
+                    const gridX = Math.floor(newX / TILE_SIZE);
+                    const gridY = Math.floor(newY / TILE_SIZE);
+
+                    if (gridY >= 0 && gridY < gameMap.length && 
+                        gridX >= 0 && gridX < gameMap[0].length && 
+                        gameMap[gridY][gridX] !== 1 && gameMap[gridY][gridX] !== 10) {
+                        this.x = newX;
+                        this.y = newY;
+                        this.direction = targetDirection;
+                        moved = true;
+                    }
+
+                    // If can't move, try random direction
+                    if (!moved) {
+                        for (let i = 0; i < 4; i++) {
+                            const randomDir = Math.floor(Math.random() * 4);
+                            const dir = directions[randomDir];
+                            const newX = this.x + dir.dx;
+                            const newY = this.y + dir.dy;
+                            const gridX = Math.floor(newX / TILE_SIZE);
+                            const gridY = Math.floor(newY / TILE_SIZE);
+
+                            if (gridY >= 0 && gridY < gameMap.length && 
+                                gridX >= 0 && gridX < gameMap[0].length && 
+                                gameMap[gridY][gridX] !== 1 && gameMap[gridY][gridX] !== 10) {
+                                this.x = newX;
+                                this.y = newY;
+                                this.direction = randomDir;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Initialize game objects
+        let player = new Player(32, 32);
+        let ghosts = [];
+
+        // Initialize ghosts based on level
+        function initializeGhosts() {
+            ghosts = [];
+            const ghostCount = getGhostCount(level);
+            const ghostColors = ['#FFB6C1', '#DDA0DD', '#F0E68C', '#98FB98'];
+            const personalities = ['chaser', 'random', 'patrol', 'ambush'];
+            
+            for (let i = 0; i < ghostCount; i++) {
+                const startX = 32 * (9 + i);
+                const startY = 32 * 5;
+                ghosts.push(new Ghost(
+                    startX, 
+                    startY, 
+                    ghostColors[i % ghostColors.length],
+                    personalities[i % personalities.length]
+                ));
+            }
+
+            // Add boss ghost for levels 4+
+            if (level >= 4) {
+                bossGhost = new BossGhost(32 * 10, 32 * 3);
+            } else {
+                bossGhost = null;
+            }
+        }
+
+        // Power-up activation
+        function activatePowerUp(powerUpType) {
+            const powerUpKey = Object.keys(POWER_UP_TYPES)[powerUpType - 4];
+            const powerUp = POWER_UP_TYPES[powerUpKey];
+            
+            usedPowerUpTypes.add(powerUpKey);
+            if (usedPowerUpTypes.size >= 5) {
+                unlockAchievement('powerCollector');
+            }
+
+            switch(powerUpKey) {
+                case 'CANDY':
+                    activePowerUps.add('CANDY');
+                    powerUpTimers['CANDY'] = powerUp.duration;
+                    powerUpText.textContent = `${powerUp.emoji} ${powerUp.name}!`;
+                    break;
+                case 'STAR':
+                    activePowerUps.add('STAR');
+                    powerUpTimers['STAR'] = powerUp.duration;
+                    powerUpText.textContent = `${powerUp.emoji} ${powerUp.name}!`;
+                    break;
+                case 'ICE':
+                    activePowerUps.add('ICE');
+                    powerUpTimers['ICE'] = powerUp.duration;
+                    powerUpText.textContent = `${powerUp.emoji} ${powerUp.name}!`;
+                    break;
+                case 'HEART':
+                    lives++;
+                    livesElement.textContent = lives;
+                    showEventNotification(`${powerUp.emoji} Extra Life!`);
+                    return; // No timer needed
+                case 'DICE':
+                    triggerRandomEvent();
+                    return; // No timer needed
+            }
+
+            powerUpIndicator.style.display = 'block';
+            updatePowerUpDisplay();
+        }
+
+        // Random events
+        function triggerRandomEvent() {
+            const events = [
+                { name: '🌪️ Fog Descends', effect: 'fog', duration: 10, good: false },
+                { name: '⚡ Power Surge', effect: 'surge', duration: 8, good: false },
+                { name: '🎉 Jackpot Dots', effect: 'jackpot', duration: 15, good: true },
+                { name: '✨ Frenzy Mode', effect: 'frenzy', duration: 8, good: true },
+                { name: '🎯 Double Points', effect: 'double', duration: 12, good: true }
+            ];
+
+            const event = events[Math.floor(Math.random() * events.length)];
+            activeEvent = event;
+            eventTimer = event.duration * 60; // Convert to frames
+            
+            showEventNotification(event.name);
+            playSound('event');
+
+            // Apply event effects
+            switch(event.effect) {
+                case 'fog':
+                    canvas.style.filter = 'brightness(0.5) contrast(0.7)';
+                    break;
+                case 'surge':
+                    // Ghosts move faster
+                    ghosts.forEach(ghost => ghost.speed *= 1.5);
+                    if (bossGhost) bossGhost.speed *= 1.5;
+                    break;
+                case 'jackpot':
+                    // Add extra dots
+                    for (let y = 0; y < gameMap.length; y++) {
+                        for (let x = 0; x < gameMap[y].length; x++) {
+                            if (gameMap[y][x] === 0 && Math.random() < 0.3) {
+                                gameMap[y][x] = 2;
+                                totalDots++;
+                            }
+                        }
+                    }
+                    break;
+                case 'frenzy':
+                    frenzyMode = true;
+                    frenzyTimer = event.duration * 60;
+                    canvas.classList.add('frenzy-mode');
+                    playSound('frenzy');
+                    break;
+                case 'double':
+                    // Double points handled in scoring
+                    break;
+            }
+        }
+
+        function showEventNotification(text) {
+            eventText.textContent = text;
+            eventNotification.style.display = 'block';
+            setTimeout(() => {
+                eventNotification.style.display = 'none';
+            }, 3000);
+        }
+
+        // Achievement system
+        function unlockAchievement(achievementKey) {
+            if (!achievements[achievementKey].unlocked) {
+                achievements[achievementKey].unlocked = true;
+                showEventNotification(`🏆 ${achievements[achievementKey].name}`);
+                playSound('powerUp');
+            }
+        }
+
+        function checkAchievements() {
+            // Speed runner
+            if (level > 1 && Date.now() - levelStartTime < 30000) {
+                unlockAchievement('speedRunner');
+            }
+            
+            // Survivor
+            if (level >= 5 && deathCount === 0) {
+                unlockAchievement('survivor');
+            }
+        }
+
+        function toggleAchievements() {
+            const panel = document.getElementById('achievementsPanel');
+            const list = document.getElementById('achievementsList');
+            
+            if (panel.style.display === 'none' || !panel.style.display) {
+                list.innerHTML = '';
+                Object.values(achievements).forEach(achievement => {
+                    const div = document.createElement('div');
+                    div.className = `achievement ${achievement.unlocked ? 'unlocked' : ''}`;
+                    div.innerHTML = `<strong>${achievement.name}</strong><br><small>${achievement.desc}</small>`;
+                    list.appendChild(div);
+                });
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function updatePowerUpDisplay() {
+            const activePowerUpKeys = Array.from(activePowerUps);
+            if (activePowerUpKeys.length > 0) {
+                const firstPowerUp = activePowerUpKeys[0];
+                powerTimer.textContent = Math.ceil(powerUpTimers[firstPowerUp]);
+                if (powerUpTimers[firstPowerUp] <= 3) {
+                    powerUpIndicator.style.background = 'linear-gradient(45deg, #FF4500, #FF6347)';
+                }
+            }
+        }
+
+        // Input handling
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            e.preventDefault();
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+            e.preventDefault();
+        });
+
+        // Game state functions
+        function startGame() {
+            gameState = 'playing';
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('achievementsPanel').style.display = 'none';
+            resetGame();
+            countDots();
+            gameLoop();
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            level = 1;
+            collectedDots = 0;
+            activePowerUps.clear();
+            powerUpTimers = {};
+            combo = 0;
+            comboTimer = 0;
+            activeEvent = null;
+            eventTimer = 0;
+            frenzyMode = false;
+            frenzyTimer = 0;
+            deathCount = 0;
+            dodgeStreak = 0;
+            usedPowerUpTypes.clear();
+            
+            powerUpIndicator.style.display = 'none';
+            comboDisplay.style.display = 'none';
+            canvas.classList.remove('frenzy-mode');
+            canvas.style.filter = 'brightness(1) saturate(1) contrast(1)';
+            
+            loadLevel(1);
+            player = new Player(32, 32);
+            initializeGhosts();
+            updateUI();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            resetGame();
+            gameState = 'playing';
+            countDots();
+            gameLoop();
+        }
+
+        function showStartScreen() {
+            gameState = 'start';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
+        }
+
+        function gameOver() {
+            gameState = 'gameOver';
+            document.getElementById('finalScore').textContent = `Final Score: ${score}`;
+            
+            // Show unlocked achievements
+            const unlockedAchievements = Object.values(achievements).filter(a => a.unlocked);
+            const achievementsText = unlockedAchievements.length > 0 
+                ? `Achievements Unlocked: ${unlockedAchievements.length}/${Object.keys(achievements).length}`
+                : 'No achievements unlocked yet';
+            document.getElementById('finalAchievements').textContent = achievementsText;
+            
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            playSound('playerDie');
+        }
+
+        function levelComplete() {
+            gameState = 'levelComplete';
+            checkAchievements();
+            
+            // Show level up message with sparkle effect
+            canvas.style.filter = 'brightness(1.5) saturate(1.5)';
+            setTimeout(() => canvas.style.filter = 'brightness(1) saturate(1)', 1000);
+            playSound('powerUp');
+            document.getElementById('levelCompleteScreen').style.display = 'flex';
+        }
+
+        function nextLevel() {
+            level++;
+            collectedDots = 0;
+            activePowerUps.clear();
+            powerUpTimers = {};
+            combo = 0;
+            comboTimer = 0;
+            activeEvent = null;
+            eventTimer = 0;
+            frenzyMode = false;
+            frenzyTimer = 0;
+            
+            powerUpIndicator.style.display = 'none';
+            comboDisplay.style.display = 'none';
+            canvas.classList.remove('frenzy-mode');
+            canvas.style.filter = 'brightness(1) saturate(1) contrast(1)';
+            
+            loadLevel(level);
+            player = new Player(32, 32);
+            initializeGhosts();
+            
+            document.getElementById('levelCompleteScreen').style.display = 'none';
+            gameState = 'playing';
+            updateUI();
+            gameLoop();
+        }
+
+        function updateUI() {
+            scoreElement.textContent = score;
+            livesElement.textContent = lives;
+            levelElement.textContent = level;
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (gameState !== 'playing') return;
+
+            // Clear canvas with dynamic background
+            let bgColor = '#F0F8FF';
+            if (frenzyMode) {
+                const hue = (Date.now() * 0.1) % 360;
+                bgColor = `hsl(${hue}, 70%, 95%)`;
+            } else if (activeEvent && activeEvent.effect === 'fog') {
+                bgColor = '#E6E6FA';
+            }
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Handle input
+            if (keys['ArrowLeft']) {
+                player.move(-player.speed, 0);
+            }
+            if (keys['ArrowRight']) {
+                player.move(player.speed, 0);
+            }
+            if (keys['ArrowUp']) {
+                player.move(0, -player.speed);
+            }
+            if (keys['ArrowDown']) {
+                player.move(0, player.speed);
+            }
+
+            // Update power-up timers
+            for (const [powerUpKey, timer] of Object.entries(powerUpTimers)) {
+                powerUpTimers[powerUpKey] = timer - 1/60;
+                if (powerUpTimers[powerUpKey] <= 0) {
+                    activePowerUps.delete(powerUpKey);
+                    delete powerUpTimers[powerUpKey];
+                    
+                    if (activePowerUps.size === 0) {
+                        powerUpIndicator.style.display = 'none';
+                        powerUpIndicator.style.background = 'linear-gradient(45deg, #FFD700, #FFA500)';
+                    }
+                }
+            }
+            updatePowerUpDisplay();
+
+            // Update combo timer
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer === 0) {
+                    combo = 0;
+                    comboDisplay.style.display = 'none';
+                }
+            }
+
+            // Update event timer
+            if (eventTimer > 0) {
+                eventTimer--;
+                if (eventTimer === 0) {
+                    // Remove event effects
+                    if (activeEvent) {
+                        switch(activeEvent.effect) {
+                            case 'fog':
+                                canvas.style.filter = 'brightness(1) saturate(1) contrast(1)';
+                                break;
+                            case 'surge':
+                                ghosts.forEach(ghost => ghost.speed /= 1.5);
+                                if (bossGhost) bossGhost.speed /= 1.5;
+                                break;
+                        }
+                        activeEvent = null;
+                    }
+                }
+            }
+
+            // Update frenzy timer
+            if (frenzyTimer > 0) {
+                frenzyTimer--;
+                if (frenzyTimer === 0) {
+                    frenzyMode = false;
+                    canvas.classList.remove('frenzy-mode');
+                }
+            }
+
+            // Draw map
+            for (let y = 0; y < gameMap.length; y++) {
+                for (let x = 0; x < gameMap[y].length; x++) {
+                    const posX = x * TILE_SIZE;
+                    const posY = y * TILE_SIZE;
+
+                    if (gameMap[y][x] === 1) {
+                        // Draw cute wall
+                        const gradient = ctx.createLinearGradient(posX, posY, posX + TILE_SIZE, posY + TILE_SIZE);
+                        gradient.addColorStop(0, '#9370DB');
+                        gradient.addColorStop(1, '#8A2BE2');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(posX, posY, TILE_SIZE, TILE_SIZE);
+                        
+                        ctx.strokeStyle = '#DDA0DD';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(posX + 1, posY + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+                    } else if (gameMap[y][x] === 2) {
+                        // Draw dot
+                        ctx.fillStyle = '#FFD700';
+                        ctx.beginPath();
+                        ctx.arc(posX + TILE_SIZE/2, posY + TILE_SIZE/2, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.beginPath();
+                        ctx.arc(posX + TILE_SIZE/2 - 1, posY + TILE_SIZE/2 - 1, 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (gameMap[y][x] >= 4 && gameMap[y][x] <= 8) {
+                        // Draw power-ups
+                        const powerUpKey = Object.keys(POWER_UP_TYPES)[gameMap[y][x] - 4];
+                        const powerUp = POWER_UP_TYPES[powerUpKey];
+                        
+                        ctx.font = '20px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(powerUp.emoji, posX + TILE_SIZE/2, posY + TILE_SIZE/2 + 7);
+                        
+                        // Glow effect
+                        ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                        ctx.beginPath();
+                        ctx.arc(posX + TILE_SIZE/2, posY + TILE_SIZE/2, 12 + Math.sin(Date.now() * 0.01) * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (gameMap[y][x] === 9) {
+                        // Draw key
+                        ctx.fillStyle = '#FFD700';
+                        ctx.fillRect(posX + 8, posY + 12, 8, 4);
+                        ctx.fillRect(posX + 16, posY + 8, 4, 12);
+                        ctx.fillRect(posX + 20, posY + 8, 2, 4);
+                        ctx.fillRect(posX + 20, posY + 16, 2, 4);
+                    } else if (gameMap[y][x] === 10) {
+                        // Draw locked door
+                        const gradient = ctx.createLinearGradient(posX, posY, posX + TILE_SIZE, posY + TILE_SIZE);
+                        gradient.addColorStop(0, '#8B4513');
+                        gradient.addColorStop(1, '#A0522D');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(posX, posY, TILE_SIZE, TILE_SIZE);
+                        
+                        // Lock
+                        ctx.fillStyle = '#FFD700';
+                        ctx.beginPath();
+                        ctx.arc(posX + TILE_SIZE/2, posY + TILE_SIZE/2 - 2, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (gameMap[y][x] === 11) {
+                        // Draw trap (spikes)
+                        ctx.fillStyle = '#FF4500';
+                        ctx.beginPath();
+                        for (let i = 0; i < 4; i++) {
+                            const spikeX = posX + 8 + (i * 4);
+                            ctx.moveTo(spikeX, posY + TILE_SIZE - 4);
+                            ctx.lineTo(spikeX + 2, posY + TILE_SIZE - 12);
+                            ctx.lineTo(spikeX + 4, posY + TILE_SIZE - 4);
+                        }
+                        ctx.fill();
+                        
+                        // Danger glow
+                        ctx.fillStyle = '#FF6347';
+                        ctx.globalAlpha = 0.3 + Math.sin(Date.now() * 0.01) * 0.2;
+                        ctx.fillRect(posX + 2, posY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            }
+
+            // Move and draw ghosts
+            ghosts.forEach(ghost => {
+                ghost.move();
+                ghost.draw();
+            });
+
+            // Move and draw boss ghost
+            if (bossGhost) {
+                bossGhost.move();
+                bossGhost.draw();
+            }
+
+            // Draw player
+            player.draw();
+
+            // Check collisions with regular ghosts
+            ghosts.forEach(ghost => {
+                if (ghost.isEaten || (ghost.isInvisible && !activePowerUps.has('STAR'))) return;
+                
+                const dx = player.x - ghost.x;
+                const dy = player.y - ghost.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < TILE_SIZE * 0.7) {
+                    if (activePowerUps.has('STAR')) {
+                        // Eat ghost
+                        ghost.isEaten = true;
+                        ghost.respawnTimer = 300;
+                        score += 200 * (frenzyMode ? 2 : 1);
+                        scoreElement.textContent = score;
+                        playSound('ghostEat');
+                        dodgeStreak++;
+                        if (dodgeStreak >= 10) {
+                            unlockAchievement('dodger');
+                        }
+                    } else {
+                        // Player dies
+                        lives--;
+                        deathCount++;
+                        dodgeStreak = 0;
+                        livesElement.textContent = lives;
+                        
+                        if (lives <= 0) {
+                            gameOver();
+                            return;
+                        } else {
+                            // Reset positions
+                            player.x = 32;
+                            player.y = 32;
+                            ghosts.forEach(ghost => {
+                                ghost.x = ghost.originalX;
+                                ghost.y = ghost.originalY;
+                                ghost.isEaten = false;
+                            });
+                            if (bossGhost) {
+                                bossGhost.x = bossGhost.originalX;
+                                bossGhost.y = bossGhost.originalY;
+                                bossGhost.isEaten = false;
+                            }
+                            playSound('playerDie');
+                        }
+                    }
+                }
+            });
+
+            // Check collision with boss ghost
+            if (bossGhost && !bossGhost.isEaten) {
+                const dx = player.x - bossGhost.x;
+                const dy = player.y - bossGhost.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < TILE_SIZE * 1.2) {
+                    if (activePowerUps.has('STAR')) {
+                        // Damage boss
+                        bossGhost.health--;
+                        score += 500 * (frenzyMode ? 2 : 1);
+                        scoreElement.textContent = score;
+                        playSound('ghostEat');
+                        
+                        if (bossGhost.health <= 0) {
+                            bossGhost.isEaten = true;
+                            bossGhost.respawnTimer = 600; // 10 seconds
+                            unlockAchievement('bossSlayer');
+                            showEventNotification('👻 Luna Defeated!');
+                        }
+                    } else {
+                        // Player dies
+                        lives--;
+                        deathCount++;
+                        dodgeStreak = 0;
+                        livesElement.textContent = lives;
+                        
+                        if (lives <= 0) {
+                            gameOver();
+                            return;
+                        } else {
+                            // Reset positions
+                            player.x = 32;
+                            player.y = 32;
+                            ghosts.forEach(ghost => {
+                                ghost.x = ghost.originalX;
+                                ghost.y = ghost.originalY;
+                                ghost.isEaten = false;
+                            });
+                            bossGhost.x = bossGhost.originalX;
+                            bossGhost.y = bossGhost.originalY;
+                            bossGhost.isEaten = false;
+                            playSound('playerDie');
+                        }
+                    }
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize
+        loadLevel(1);
+        initializeGhosts();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'984763beb0887992',t:'MTc1ODc3MDQ2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
